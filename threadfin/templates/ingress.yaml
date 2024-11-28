@@ -1,0 +1,40 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: threadfin-ingress
+  labels:
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ include "threadfin.chart" . }}
+    app.kubernetes.io/name: {{ include "threadfin.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  {{- if .Values.ingress.certEnabled }}
+  annotations:
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.certManager.clusterIssuer }}
+    cert-manager.io/common-name: {{ .Values.ingress.certManager.commonName }}
+    cert-manager.io/subject-organizations: {{ .Values.ingress.certManager.organization }}
+    cert-manager.io/subject-organizationalUnits: {{ .Values.ingress.certManager.ou }}
+    cert-manager.io/subject-countries: {{ .Values.ingress.certManager.countries }}
+    cert-manager.io/subject-provinces: {{ .Values.ingress.certManager.provinces }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{ if eq .Values.ingress.certEnabled "true"}}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.certManager.commonName }}
+      secretName: threadfin-tls
+  {{ end }}
+  rules:
+    - host: {{ .Values.ingress.certManager.commonName }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-service
+                port:
+                  number: {{ .Values.service.port }}
+  {{- end}}

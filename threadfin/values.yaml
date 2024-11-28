@@ -1,0 +1,66 @@
+
+replicaCount: 1
+
+# This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+image:
+  repository: fyb3roptik/threadfin
+  # This sets the pull policy for images.
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+app:
+  # The label used in the deployment and service
+  label: threadfin
+  # Test, Dev, Prod etc.
+  env: lab
+
+container:
+  # The port exposed by the container. This is also used in the service as targetPort.
+  port: 34400
+  # Environment Variables within the container
+  env:
+    # Set the timezone
+    tz: "Europe/London"
+    # Where should threadfin store its config files ?
+    conf_path: "/home/threadfin/conf"
+    # Where should threadfin store its temporary files ?
+    temp_path: "/tmp/threadfin"
+    # What branch of threadfin should helm use?
+    branch: "main"
+
+  # Resources available to each container
+  resources:
+    cpu:
+      limit: "1"
+      requests: "0.5"
+    memory:
+      limit: "1Gi"
+      requests: "256Mi"
+
+# Persistance of data
+# Manually create two PVC, one for config data and one for temporary files
+volumes:
+  config:
+    pvcName: "dyn-vc-threadfin-conf"
+  temp:
+    pvcName: "dyn-vc-threadfin-temp"
+
+# Details for the Service
+service:
+  # Currently only supports ClusterIP Type
+  type: ClusterIP
+  # Port exposed by the service
+  port: 34400
+
+ingress:
+  enabled: "true"
+  ingressClassName: "nginx"
+  certEnabled: "true"
+  certManager:
+    clusterIssuer: "issuer"
+    commonName: "cert.domain.example"
+    organization: "org"
+    ou: "IT, Kubernetes"
+    countries: "United Kingdom"
+    provinces: "London"

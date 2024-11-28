@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-deployment
+  labels:
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    helm.sh/chart: {{ include "threadfin.chart" . }}
+    app.kubernetes.io/name: {{ include "threadfin.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.app.label }}
+      env: {{ .Values.app.env }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.app.label }}
+        env: {{ .Values.app.env }}
+    spec:
+      containers:
+        - name: {{ .Release.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.container.port }}
+          env:
+            - name: "TZ"
+              value: "{{ .Values.container.env.tz }}"
+            - name: "THREADFIN_PORT"
+              value: "{{ .Values.container.port }}"
+            - name: "THREADFIN_CONF"
+              value: "{{ .Values.container.env.conf_path }}"
+            - name: "THREADFIN_TEMP"
+              value: "{{ .Values.container.env.temp_path }}"
+            - name: "THREADFIN_BRANCH"
+              value: "{{ .Values.container.env.branch }}"
+          resources:
+            limits:
+              cpu: {{ .Values.container.resources.cpu.limit }}
+              memory: {{ .Values.container.resources.memory.limit }}
+            requests:
+              cpu: {{ .Values.container.resources.cpu.requests }}
+              memory: {{ .Values.container.resources.memory.requests }}
+          volumeMounts:
+            - name: threadfin-conf
+              mountPath: /home/threadfin/conf
+            - name: threadfin-temp
+              mountPath: /tmp/threadfin:rw
+      volumes:
+        - name: threadfin-conf
+          persistentVolumeClaim:
+            claimName: {{ .Values.volumes.config.pvcName }}
+        - name: threadfin-temp
+          persistentVolumeClaim:
+            claimName: {{ .Values.volumes.temp.pvcName }}
